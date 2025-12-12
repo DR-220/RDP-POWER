@@ -264,49 +264,7 @@ jobs:
       - name: Launch RustDesk (foreground) + Screenshot to Gofile
         run: |
           $rdExe = "C:\Program Files\RustDesk\rustdesk.exe"
-          Start-Process -FilePath $rdExe -ErrorAction SilentlyContinue
-          Start-Sleep -Seconds 5
-          $screenshotPath = "$env:TEMP\rustdesk_${{ matrix.id }}.png"
           
-          # Capture Screenshot
-          Add-Type -AssemblyName System.Windows.Forms
-          Add-Type -AssemblyName System.Drawing
-          $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
-          $bitmap = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height
-          $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
-          $graphics.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
-          $bitmap.Save($screenshotPath, [System.Drawing.Imaging.ImageFormat]::Png)
-          $graphics.Dispose(); $bitmap.Dispose()
-          
-          # 1. Get the best available Gofile server
-          Write-Host "Finding best Gofile server..."
-          $srvJson = & curl.exe -s https://api.gofile.io/getServer | ConvertFrom-Json
-          
-          if ($srvJson.status -eq "ok") {
-              $server = $srvJson.data.server
-              $uploadUrl = "https://$server.gofile.io/uploadFile"
-              Write-Host "Uploading to: $uploadUrl"
-  
-              # 2. Upload using curl.exe (Explicitly calling .exe avoids PowerShell alias issues)
-              $curlResult = & curl.exe -s -F "file=@$screenshotPath" $uploadUrl
-              
-              # Debugging: Print raw output if parsing fails next
-              Write-Host "Raw Response: $curlResult"
-  
-              try {
-                  $json = $curlResult | ConvertFrom-Json
-                  if ($json.status -eq "ok") { 
-                      "SCREENSHOT_URL=$($json.data.downloadPage)" | Out-File -Append $env:GITHUB_ENV 
-                      Write-Host "Upload Success: $($json.data.downloadPage)"
-                  } else {
-                      Write-Error "Gofile Error: $($json.status)"
-                  }
-              } catch {
-                  Write-Error "JSON Parsing Failed. The server returned text instead of JSON."
-              }
-          } else {
-              Write-Error "Could not retrieve a valid Gofile server."
-          }
 
       - name: Keep alive (to ${{ env.RUNTIME_MINUTES }} mins)
         run: |
