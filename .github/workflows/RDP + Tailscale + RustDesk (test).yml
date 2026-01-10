@@ -284,23 +284,6 @@ jobs:
           $bitmap.Save($screenshotPath, [System.Drawing.Imaging.ImageFormat]::Png)
           $graphics.Dispose(); $bitmap.Dispose()
 
-          # --- FIX: Dynamic Server + curl.exe ---
-          try {
-              $serverRaw = curl.exe -s https://api.gofile.io/getServer
-              $serverJson = $serverRaw | ConvertFrom-Json
-              if ($serverJson.status -eq "ok") {
-                  $server = $serverJson.data.server
-                  Write-Host "Uploading screenshot to Gofile server: $server"
-                  $uploadRaw = curl.exe -F "file=@$screenshotPath" "https://$server.gofile.io/uploadFile"
-                  $uploadJson = $uploadRaw | ConvertFrom-Json
-                  if ($uploadJson.status -eq "ok") {
-                      $url = $uploadJson.data.downloadPage
-                      "SCREENSHOT_URL=$url" | Out-File -Append $env:GITHUB_ENV
-                      Write-Host "Screenshot Uploaded: $url"
-                  } else { Write-Error "Gofile upload failed status." }
-              } else { Write-Error "Could not get Gofile server." }
-          } catch {
-              Write-Error "Screenshot upload exception: $($_.Exception.Message)"
           }
 
       - name: Keep alive (to ${{ env.RUNTIME_MINUTES }} mins)
